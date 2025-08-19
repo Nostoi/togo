@@ -99,29 +99,29 @@ func NewTodoTable(todoList *model.TodoList) TodoTableModel {
 		newTaskDeadline:     "",
 		newTaskHardDeadline: false,
 	}
-	m.updateRows()
+	m = m.updateRows()
 	return m
 }
 
 func (m *TodoTableModel) SetShowArchivedOnly(show bool) {
 	m.showArchivedOnly = show
 	m.showAll = false
-	m.updateRows()
+	*m = m.updateRows()
 }
 
 func (m *TodoTableModel) SetShowAll(show bool) {
 	m.showAll = show
 	m.showArchivedOnly = false
-	m.updateRows()
+	*m = m.updateRows()
 }
 
 func (m *TodoTableModel) SetShowActiveOnly(show bool) {
 	m.showAll = false
 	m.showArchivedOnly = false
-	m.updateRows()
+	*m = m.updateRows()
 }
 
-func (m *TodoTableModel) updateRows() {
+func (m TodoTableModel) updateRows() TodoTableModel {
 	availableWidth := m.width - 8
 	if availableWidth < 40 {
 		availableWidth = 40
@@ -192,7 +192,12 @@ func (m *TodoTableModel) updateRows() {
 			rows = append(rows, table.Row{checkbox, title, status, createdAt})
 		}
 	}
+	
+	// Set the rows on the table
 	m.table.SetRows(rows)
+	
+	// Update the columns to ensure the table refreshes completely
+	m.table.SetColumns(columns)
 
 	baseStyle.Width(availableWidth)
 
@@ -216,6 +221,7 @@ func (m *TodoTableModel) updateRows() {
 		rowsHeight = 3
 	}
 	m.table.SetHeight(rowsHeight)
+	return m
 }
 
 func (m TodoTableModel) findTodoByID(id int) *model.Todo {

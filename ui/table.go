@@ -195,11 +195,6 @@ func (m TodoTableModel) updateRows() TodoTableModel {
 	
 	// Set the rows on the table
 	m.table.SetRows(rows)
-	
-	// Update the columns to ensure the table refreshes completely
-	m.table.SetColumns(columns)
-
-	baseStyle.Width(availableWidth)
 
 	extra := 4
 	helpLines := 0

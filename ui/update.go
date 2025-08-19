@@ -11,20 +11,21 @@ import (
 )
 
 // Helper methods for task creation
-func (m *TodoTableModel) resetNewTaskFields() {
+func (m TodoTableModel) resetNewTaskFields() TodoTableModel {
 	m.newTaskTitle = ""
 	m.newTaskDeadline = ""
 	m.newTaskHardDeadline = false
+	return m
 }
 
-func (m *TodoTableModel) createTaskWithDeadline() {
+func (m TodoTableModel) createTaskWithDeadline() TodoTableModel {
 	if m.newTaskDeadline != "" {
 		deadline, err := model.ParseDeadline(m.newTaskDeadline)
 		if err != nil {
 			m.SetStatusMessage(fmt.Sprintf("Invalid deadline format: %v", err))
-			m.resetNewTaskFields()
+			m = m.resetNewTaskFields()
 			m.mode = ModeNormal
-			return
+			return m
 		}
 		m.todoList.AddWithDeadline(m.newTaskTitle, deadline, m.newTaskHardDeadline)
 		deadlineStr := model.FormatDeadline(deadline, m.newTaskHardDeadline)
@@ -33,9 +34,10 @@ func (m *TodoTableModel) createTaskWithDeadline() {
 		m.todoList.Add(m.newTaskTitle)
 		m.SetStatusMessage("New task added")
 	}
-	m.updateRows()
-	m.resetNewTaskFields()
+	m = m.updateRows()
+	m = m.resetNewTaskFields()
 	m.mode = ModeNormal
+	return m
 }
 
 func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -43,7 +45,7 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if msg, ok := msg.(tea.WindowSizeMsg); ok {
 		m.width = msg.Width
 		m.height = msg.Height
-		m.updateRows()
+		m = m.updateRows()
 	}
 	switch m.mode {
 	case ModeViewDetail:
@@ -109,7 +111,7 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 					}
 				}
-				m.updateRows()
+				m = m.updateRows()
 				m.mode = ModeNormal
 				return m, nil
 			case "n", "N", "esc", "q":
@@ -158,15 +160,15 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					// No deadline, add task immediately
 					m.todoList.Add(m.newTaskTitle)
-					m.updateRows()
+					m = m.updateRows()
 					m.SetStatusMessage("New task added")
-					m.resetNewTaskFields()
+					m = m.resetNewTaskFields()
 					m.mode = ModeNormal
 					return m, nil
 				}
 			case "esc":
 				m.deadlineInput.Reset()
-				m.resetNewTaskFields()
+				m = m.resetNewTaskFields()
 				m.mode = ModeNormal
 				return m, nil
 			}
@@ -179,14 +181,14 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "h", "H":
 				m.newTaskHardDeadline = true
-				m.createTaskWithDeadline()
+				m = m.createTaskWithDeadline()
 				return m, nil
 			case "s", "S", "enter":
 				m.newTaskHardDeadline = false
-				m.createTaskWithDeadline()
+				m = m.createTaskWithDeadline()
 				return m, nil
 			case "esc":
-				m.resetNewTaskFields()
+				m = m.resetNewTaskFields()
 				m.mode = ModeNormal
 				return m, nil
 			}
@@ -198,7 +200,7 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case ".":
 				m.showHelp = !m.showHelp
-				m.updateRows()
+				m = m.updateRows()
 				return m, nil
 			case "esc", "q":
 				return m, tea.Quit
@@ -251,7 +253,7 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							}
 						}
 					}
-					m.updateRows()
+					m = m.updateRows()
 				}
 			case "n":
 				if len(m.table.Rows()) > 0 {
@@ -272,7 +274,7 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						if count > 0 {
 							m.SetStatusMessage(fmt.Sprintf("%d tasks updated", count))
 						}
-						m.updateRows()
+						m = m.updateRows()
 					} else {
 						selectedTitle := m.table.SelectedRow()[1]
 						cleanTitle := strings.Replace(selectedTitle, archivedStyle.Render(""), "", -1)
@@ -286,7 +288,7 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 									m.todoList.Archive(todo.ID)
 									m.SetStatusMessage("Task archived")
 								}
-								m.updateRows()
+								m = m.updateRows()
 								break
 							}
 						}
@@ -335,7 +337,7 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								m.selectedTodoIDs[todo.ID] = true
 							}
 							m.bulkActionActive = len(m.selectedTodoIDs) > 0
-							m.updateRows()
+							m = m.updateRows()
 						}
 					}
 					return m, nil

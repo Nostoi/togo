@@ -24,10 +24,22 @@ func (m TodoTableModel) View() string {
 		if todo.Archived {
 			archivedStatus = "\nArchived: " + archivedStyle.Render("Yes")
 		}
+		
+		deadlineInfo := ""
+		if todo.Deadline != nil {
+			deadlineType := "Soft Deadline"
+			if todo.HardDeadline {
+				deadlineType = "Hard Deadline"
+			}
+			deadlineStr := todo.Deadline.Format("2006-01-02 15:04")
+			deadlineFormatted := model.FormatDeadline(todo.Deadline, todo.HardDeadline)
+			deadlineInfo = fmt.Sprintf("\n%s: %s (%s)", deadlineType, deadlineStr, deadlineFormatted)
+		}
+		
 		createdAt := model.FormatTimeAgo(todo.CreatedAt)
 		taskView := fullTaskViewStyle.Render(
 			taskTitleStyle.Render(todo.Title) + "\n\n" +
-				"Status: " + status + archivedStatus + "\n" +
+				"Status: " + status + archivedStatus + deadlineInfo + "\n" +
 				"Created: " + createdAtStyle.Render(createdAt) + "\n\n" +
 				helpStyle.Render("Press Enter to go back"))
 		return fullScreenStyle.Width(m.width).Height(m.height).Render(taskView)

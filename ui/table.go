@@ -193,6 +193,9 @@ func (m TodoTableModel) updateRows() TodoTableModel {
 		}
 	}
 	m.table.SetRows(rows)
+	
+	// Force table update to ensure it refreshes properly
+	m.table, _ = m.table.Update(nil)
 
 	baseStyle.Width(availableWidth)
 

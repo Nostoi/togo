@@ -14,6 +14,8 @@ const (
 	ModeDeleteConfirm
 	ModeArchiveConfirm
 	ModeAddTask
+	ModeAddTaskDeadline
+	ModeAddTaskDeadlineType
 )
 
 type TodoTableModel struct {
@@ -29,9 +31,14 @@ type TodoTableModel struct {
 	selectedTodoIDs  map[int]bool
 	bulkActionActive bool
 	textInput        textinput.Model
+	deadlineInput    textinput.Model
 	showArchived     bool
 	showAll          bool
 	showArchivedOnly bool
 	statusMessage    string
 	showHelp         bool
+	// Fields for add task flow
+	newTaskTitle     string
+	newTaskDeadline  string
+	newTaskHardDeadline bool
 }

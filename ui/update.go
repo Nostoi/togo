@@ -10,6 +10,34 @@ import (
 	"github.com/prime-run/togo/model"
 )
 
+// Helper methods for task creation
+func (m *TodoTableModel) resetNewTaskFields() {
+	m.newTaskTitle = ""
+	m.newTaskDeadline = ""
+	m.newTaskHardDeadline = false
+}
+
+func (m *TodoTableModel) createTaskWithDeadline() {
+	if m.newTaskDeadline != "" {
+		deadline, err := model.ParseDeadline(m.newTaskDeadline)
+		if err != nil {
+			m.SetStatusMessage(fmt.Sprintf("Invalid deadline format: %v", err))
+			m.resetNewTaskFields()
+			m.mode = ModeNormal
+			return
+		}
+		m.todoList.AddWithDeadline(m.newTaskTitle, deadline, m.newTaskHardDeadline)
+		deadlineStr := model.FormatDeadline(deadline, m.newTaskHardDeadline)
+		m.SetStatusMessage(fmt.Sprintf("Task added with deadline: %s", deadlineStr))
+	} else {
+		m.todoList.Add(m.newTaskTitle)
+		m.SetStatusMessage("New task added")
+	}
+	m.updateRows()
+	m.resetNewTaskFields()
+	m.mode = ModeNormal
+}
+
 func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	if msg, ok := msg.(tea.WindowSizeMsg); ok {
@@ -97,20 +125,72 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				title := strings.TrimSpace(m.textInput.Value())
 				if title != "" {
-					m.todoList.Add(title)
+					m.newTaskTitle = title
 					m.textInput.Reset()
-					m.updateRows()
-					m.SetStatusMessage("New task added")
+					m.mode = ModeAddTaskDeadline
+					m.deadlineInput.Focus()
+					return m, textinput.Blink
 				}
 				m.mode = ModeNormal
 				return m, nil
 			case "esc":
 				m.textInput.Reset()
+				m.newTaskTitle = ""
+				m.newTaskDeadline = ""
+				m.newTaskHardDeadline = false
 				m.mode = ModeNormal
 				return m, nil
 			}
 		}
 		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
+	case ModeAddTaskDeadline:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				deadline := strings.TrimSpace(m.deadlineInput.Value())
+				m.newTaskDeadline = deadline
+				m.deadlineInput.Reset()
+				if deadline != "" {
+					m.mode = ModeAddTaskDeadlineType
+					return m, nil
+				} else {
+					// No deadline, add task immediately
+					m.todoList.Add(m.newTaskTitle)
+					m.updateRows()
+					m.SetStatusMessage("New task added")
+					m.resetNewTaskFields()
+					m.mode = ModeNormal
+					return m, nil
+				}
+			case "esc":
+				m.deadlineInput.Reset()
+				m.resetNewTaskFields()
+				m.mode = ModeNormal
+				return m, nil
+			}
+		}
+		m.deadlineInput, cmd = m.deadlineInput.Update(msg)
+		return m, cmd
+	case ModeAddTaskDeadlineType:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "h", "H":
+				m.newTaskHardDeadline = true
+				m.createTaskWithDeadline()
+				return m, nil
+			case "s", "S", "enter":
+				m.newTaskHardDeadline = false
+				m.createTaskWithDeadline()
+				return m, nil
+			case "esc":
+				m.resetNewTaskFields()
+				m.mode = ModeNormal
+				return m, nil
+			}
+		}
 		return m, cmd
 	case ModeNormal:
 		switch msg := msg.(type) {

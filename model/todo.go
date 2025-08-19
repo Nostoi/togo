@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -54,6 +56,75 @@ func (tl *TodoList) Add(title string) *Todo {
 	tl.TodoByID[todo.ID] = len(tl.Todos) - 1
 	tl.NextID++
 	return &todo
+}
+
+// AddWithDeadline adds a new todo with an optional deadline
+func (tl *TodoList) AddWithDeadline(title string, deadline *time.Time, hardDeadline bool) *Todo {
+	todo := Todo{
+		ID:           tl.NextID,
+		Title:        title,
+		Completed:    false,
+		Archived:     false,
+		CreatedAt:    time.Now(),
+		Deadline:     deadline,
+		HardDeadline: hardDeadline,
+	}
+	tl.Todos = append(tl.Todos, todo)
+	tl.TodoByID[todo.ID] = len(tl.Todos) - 1
+	tl.NextID++
+	return &todo
+}
+
+// ParseDeadline parses deadline strings like "2h", "1d", "2024-01-15", "2024-01-15 15:30"
+func ParseDeadline(deadlineStr string) (*time.Time, error) {
+	if deadlineStr == "" {
+		return nil, nil
+	}
+
+	// Try relative time format first (e.g., "2h", "1d", "30m")
+	relativePattern := regexp.MustCompile(`^(\d+)([mhd])$`)
+	if matches := relativePattern.FindStringSubmatch(deadlineStr); len(matches) == 3 {
+		value, err := strconv.Atoi(matches[1])
+		if err != nil {
+			return nil, fmt.Errorf("invalid time value: %s", matches[1])
+		}
+
+		var duration time.Duration
+		switch matches[2] {
+		case "m":
+			duration = time.Duration(value) * time.Minute
+		case "h":
+			duration = time.Duration(value) * time.Hour
+		case "d":
+			duration = time.Duration(value) * 24 * time.Hour
+		default:
+			return nil, fmt.Errorf("invalid time unit: %s", matches[2])
+		}
+
+		deadline := time.Now().Add(duration)
+		return &deadline, nil
+	}
+
+	// Try absolute date formats
+	formats := []string{
+		"2006-01-02 15:04",
+		"2006-01-02",
+		"01-02 15:04",
+		"01-02",
+	}
+
+	for _, format := range formats {
+		if parsed, err := time.Parse(format, deadlineStr); err == nil {
+			// For formats without year, use current year
+			if strings.Count(format, "2006") == 0 {
+				now := time.Now()
+				parsed = time.Date(now.Year(), parsed.Month(), parsed.Day(), parsed.Hour(), parsed.Minute(), 0, 0, time.Local)
+			}
+			return &parsed, nil
+		}
+	}
+
+	return nil, fmt.Errorf("unable to parse deadline format: %s. Use formats like '2h', '1d', '2024-01-15' or '2024-01-15 15:30'", deadlineStr)
 }
 
 func (tl *TodoList) findIndexByID(id int) int {

@@ -62,6 +62,13 @@ func NewTodoTable(todoList *model.TodoList) TodoTableModel {
 	ti.Focus()
 	ti.CharLimit = 120
 	ti.Width = titleColWidth
+	
+	// Create deadline input
+	di := textinput.New()
+	di.Placeholder = "Enter deadline (e.g., 2h, 1d, 2026-01-15) or press Enter to skip"
+	di.CharLimit = 50
+	di.Width = titleColWidth
+	
 	showArchived := false
 	for _, todo := range todoList.Todos {
 		if todo.Archived {
@@ -81,11 +88,16 @@ func NewTodoTable(todoList *model.TodoList) TodoTableModel {
 		selectedTodoIDs:  make(map[int]bool),
 		bulkActionActive: false,
 		textInput:        ti,
+		deadlineInput:    di,
 		showArchived:     showArchived,
 		showAll:          true,
 		showArchivedOnly: false,
 		statusMessage:    "",
 		showHelp:         true,
+		// Initialize new task fields
+		newTaskTitle:        "",
+		newTaskDeadline:     "",
+		newTaskHardDeadline: false,
 	}
 	m.updateRows()
 	return m

@@ -64,7 +64,21 @@ func (m TodoTableModel) View() string {
 		inputView := inputStyle.Render(
 			inputPromptStyle.Render("Add New Task") + "\n\n" +
 				m.textInput.View() + "\n\n" +
-				helpStyle.Render("Press Enter to save, Esc to cancel"))
+				helpStyle.Render("Press Enter to continue, Esc to cancel"))
+		return fullScreenStyle.Width(m.width).Height(m.height).Render(inputView)
+	}
+	if m.mode == ModeAddTaskDeadline {
+		inputView := inputStyle.Render(
+			inputPromptStyle.Render("Set Deadline (Optional)") + "\n\n" +
+				m.deadlineInput.View() + "\n\n" +
+				helpStyle.Render("Examples: 2h, 1d, 2026-01-15, 2026-01-15 15:30\nPress Enter to continue (or skip), Esc to cancel"))
+		return fullScreenStyle.Width(m.width).Height(m.height).Render(inputView)
+	}
+	if m.mode == ModeAddTaskDeadlineType {
+		inputView := inputStyle.Render(
+			inputPromptStyle.Render("Deadline Type") + "\n\n" +
+				fmt.Sprintf("Task: %s\nDeadline: %s\n\n", m.newTaskTitle, m.newTaskDeadline) +
+				helpStyle.Render("H - Hard deadline (important!)\nS/Enter - Soft deadline\nEsc - Cancel"))
 		return fullScreenStyle.Width(m.width).Height(m.height).Render(inputView)
 	}
 	if len(m.todoList.Todos) == 0 {

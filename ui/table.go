@@ -192,10 +192,12 @@ func (m TodoTableModel) updateRows() TodoTableModel {
 			rows = append(rows, table.Row{checkbox, title, status, createdAt})
 		}
 	}
+	
+	// Set the rows on the table
 	m.table.SetRows(rows)
 	
-	// Force table update to ensure it refreshes properly
-	m.table, _ = m.table.Update(nil)
+	// Update the columns to ensure the table refreshes completely
+	m.table.SetColumns(columns)
 
 	baseStyle.Width(availableWidth)
 

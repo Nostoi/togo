@@ -18,13 +18,28 @@ func NewTodoTable(todoList *model.TodoList) TodoTableModel {
 	checkboxColWidth := 5
 	statusColWidth := 15
 	createdAtColWidth := 15
-	titleColWidth := displayWidth - checkboxColWidth - statusColWidth - createdAtColWidth - 8
-	columns := []table.Column{
-		{Title: "✓", Width: checkboxColWidth},
-		{Title: "Title", Width: titleColWidth},
-		{Title: "Status", Width: statusColWidth},
-		{Title: "Created", Width: createdAtColWidth},
+	deadlineColWidth := 12
+	titleColWidth := displayWidth - checkboxColWidth - statusColWidth - createdAtColWidth - deadlineColWidth - 10
+	
+	var columns []table.Column
+	if titleColWidth >= 20 {
+		columns = []table.Column{
+			{Title: "✓", Width: checkboxColWidth},
+			{Title: "Title", Width: titleColWidth},
+			{Title: "Status", Width: statusColWidth},
+			{Title: "Deadline", Width: deadlineColWidth},
+			{Title: "Created", Width: createdAtColWidth},
+		}
+	} else {
+		titleColWidth = displayWidth - checkboxColWidth - statusColWidth - createdAtColWidth - 8
+		columns = []table.Column{
+			{Title: "✓", Width: checkboxColWidth},
+			{Title: "Title", Width: titleColWidth},
+			{Title: "Status", Width: statusColWidth},
+			{Title: "Created", Width: createdAtColWidth},
+		}
 	}
+	
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithFocused(true),
@@ -103,17 +118,32 @@ func (m *TodoTableModel) updateRows() {
 	checkboxColWidth := 5
 	statusColWidth := 15
 	createdAtColWidth := 15
-	titleColWidth := availableWidth - checkboxColWidth - statusColWidth - createdAtColWidth - 6
+	deadlineColWidth := 12
+	titleColWidth := availableWidth - checkboxColWidth - statusColWidth - createdAtColWidth - deadlineColWidth - 8
 	if titleColWidth < 20 {
 		titleColWidth = 20
+		deadlineColWidth = 0 // Hide deadline column if space is too tight
 	}
 
-	m.table.SetColumns([]table.Column{
-		{Title: "✓", Width: checkboxColWidth},
-		{Title: "Title", Width: titleColWidth},
-		{Title: "Status", Width: statusColWidth},
-		{Title: "Created", Width: createdAtColWidth},
-	})
+	var columns []table.Column
+	if deadlineColWidth > 0 {
+		columns = []table.Column{
+			{Title: "✓", Width: checkboxColWidth},
+			{Title: "Title", Width: titleColWidth},
+			{Title: "Status", Width: statusColWidth},
+			{Title: "Deadline", Width: deadlineColWidth},
+			{Title: "Created", Width: createdAtColWidth},
+		}
+	} else {
+		columns = []table.Column{
+			{Title: "✓", Width: checkboxColWidth},
+			{Title: "Title", Width: titleColWidth},
+			{Title: "Status", Width: statusColWidth},
+			{Title: "Created", Width: createdAtColWidth},
+		}
+	}
+
+	m.table.SetColumns(columns)
 
 	var rows []table.Row
 	var filteredTodos []model.Todo
@@ -142,7 +172,13 @@ func (m *TodoTableModel) updateRows() {
 			status = statusPendingStyle.Render("Pending")
 		}
 		createdAt := model.FormatTimeAgo(todo.CreatedAt)
-		rows = append(rows, table.Row{checkbox, title, status, createdAt})
+		
+		if deadlineColWidth > 0 {
+			deadline := model.FormatDeadline(todo.Deadline, todo.HardDeadline)
+			rows = append(rows, table.Row{checkbox, title, status, deadline, createdAt})
+		} else {
+			rows = append(rows, table.Row{checkbox, title, status, createdAt})
+		}
 	}
 	m.table.SetRows(rows)
 

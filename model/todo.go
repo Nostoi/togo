@@ -10,11 +10,13 @@ import (
 )
 
 type Todo struct {
-	ID        int       `json:"id"`
-	Title     string    `json:"title"`
-	Completed bool      `json:"completed"`
-	Archived  bool      `json:"archived"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           int        `json:"id"`
+	Title        string     `json:"title"`
+	Completed    bool       `json:"completed"`
+	Archived     bool       `json:"archived"`
+	CreatedAt    time.Time  `json:"created_at"`
+	Deadline     *time.Time `json:"deadline,omitempty"`
+	HardDeadline bool       `json:"hard_deadline"`
 }
 
 type TodoList struct {
@@ -40,11 +42,13 @@ func (tl *TodoList) rebuildIndex() {
 
 func (tl *TodoList) Add(title string) *Todo {
 	todo := Todo{
-		ID:        tl.NextID,
-		Title:     title,
-		Completed: false,
-		Archived:  false,
-		CreatedAt: time.Now(),
+		ID:           tl.NextID,
+		Title:        title,
+		Completed:    false,
+		Archived:     false,
+		CreatedAt:    time.Now(),
+		Deadline:     nil,
+		HardDeadline: false,
 	}
 	tl.Todos = append(tl.Todos, todo)
 	tl.TodoByID[todo.ID] = len(tl.Todos) - 1
@@ -240,5 +244,44 @@ func FormatTimeAgo(t time.Time) string {
 		return fmt.Sprintf("%dm", minutes)
 	} else {
 		return "now"
+	}
+}
+
+func FormatDeadline(deadline *time.Time, hardDeadline bool) string {
+	if deadline == nil {
+		return ""
+	}
+	
+	now := time.Now()
+	diff := deadline.Sub(now)
+	
+	prefix := ""
+	if hardDeadline {
+		prefix = "! "
+	}
+	
+	if diff < 0 {
+		// Overdue
+		diff = -diff
+		days := int(diff.Hours() / 24)
+		hours := int(diff.Hours()) % 24
+		if days > 0 {
+			return fmt.Sprintf("%sOverdue %dd", prefix, days)
+		} else if hours > 0 {
+			return fmt.Sprintf("%sOverdue %dh", prefix, hours)
+		} else {
+			return fmt.Sprintf("%sOverdue", prefix)
+		}
+	}
+	
+	// Future deadline
+	days := int(diff.Hours() / 24)
+	hours := int(diff.Hours()) % 24
+	if days > 0 {
+		return fmt.Sprintf("%s%dd", prefix, days)
+	} else if hours > 0 {
+		return fmt.Sprintf("%s%dh", prefix, hours)
+	} else {
+		return fmt.Sprintf("%sSoon", prefix)
 	}
 }

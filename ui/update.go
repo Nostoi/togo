@@ -206,14 +206,17 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			case "enter":
 				if len(m.table.Rows()) > 0 {
-					selectedTitle := m.table.SelectedRow()[1]
-					cleanTitle := strings.Replace(selectedTitle, archivedStyle.Render(""), "", -1)
+					selectedRow := m.table.SelectedRow()
+					if len(selectedRow) > 1 {
+						selectedTitle := selectedRow[1]
+						cleanTitle := strings.Replace(selectedTitle, archivedStyle.Render(""), "", -1)
 
-					for _, todo := range m.todoList.Todos {
-						if strings.Contains(selectedTitle, todo.Title) || todo.Title == cleanTitle {
-							m.mode = ModeViewDetail
-							m.viewTaskID = todo.ID
-							break
+						for _, todo := range m.todoList.Todos {
+							if strings.Contains(selectedTitle, todo.Title) || todo.Title == cleanTitle {
+								m.mode = ModeViewDetail
+								m.viewTaskID = todo.ID
+								break
+							}
 						}
 					}
 				}
@@ -237,19 +240,22 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.SetStatusMessage(fmt.Sprintf("%d tasks updated", count))
 						}
 					} else {
-						selectedTitle := m.table.SelectedRow()[1]
-						cleanTitle := strings.Replace(selectedTitle, archivedStyle.Render(""), "", -1)
+						selectedRow := m.table.SelectedRow()
+						if len(selectedRow) > 1 {
+							selectedTitle := selectedRow[1]
+							cleanTitle := strings.Replace(selectedTitle, archivedStyle.Render(""), "", -1)
 
-						for _, todo := range m.todoList.Todos {
-							if strings.Contains(selectedTitle, todo.Title) || todo.Title == cleanTitle {
-								if todo.Archived {
-									m.todoList.Unarchive(todo.ID)
-									m.SetStatusMessage("Task unarchived")
-								} else {
-									m.todoList.Toggle(todo.ID)
-									m.SetStatusMessage("Task updated")
+							for _, todo := range m.todoList.Todos {
+								if strings.Contains(selectedTitle, todo.Title) || todo.Title == cleanTitle {
+									if todo.Archived {
+										m.todoList.Unarchive(todo.ID)
+										m.SetStatusMessage("Task unarchived")
+									} else {
+										m.todoList.Toggle(todo.ID)
+										m.SetStatusMessage("Task updated")
+									}
+									break
 								}
-								break
 							}
 						}
 					}
@@ -276,20 +282,23 @@ func (m TodoTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						m = m.updateRows()
 					} else {
-						selectedTitle := m.table.SelectedRow()[1]
-						cleanTitle := strings.Replace(selectedTitle, archivedStyle.Render(""), "", -1)
+						selectedRow := m.table.SelectedRow()
+						if len(selectedRow) > 1 {
+							selectedTitle := selectedRow[1]
+							cleanTitle := strings.Replace(selectedTitle, archivedStyle.Render(""), "", -1)
 
-						for _, todo := range m.todoList.Todos {
-							if strings.Contains(selectedTitle, todo.Title) || todo.Title == cleanTitle {
-								if todo.Archived {
-									m.todoList.Unarchive(todo.ID)
-									m.SetStatusMessage("Task unarchived")
-								} else {
-									m.todoList.Archive(todo.ID)
-									m.SetStatusMessage("Task archived")
+							for _, todo := range m.todoList.Todos {
+								if strings.Contains(selectedTitle, todo.Title) || todo.Title == cleanTitle {
+									if todo.Archived {
+										m.todoList.Unarchive(todo.ID)
+										m.SetStatusMessage("Task unarchived")
+									} else {
+										m.todoList.Archive(todo.ID)
+										m.SetStatusMessage("Task archived")
+									}
+									m = m.updateRows()
+									break
 								}
-								m = m.updateRows()
-								break
 							}
 						}
 					}

@@ -121,22 +121,49 @@ func (m *TodoTableModel) SetShowActiveOnly(show bool) {
 	*m = m.updateRows()
 }
 
+// normalizeCells ensures that the row has exactly n cells, padding with empty strings
+// or truncating as needed to prevent index out of range errors during table rendering.
+func normalizeCells(cells []string, n int) []string {
+	if len(cells) > n {
+		return cells[:n]
+	}
+	if len(cells) < n {
+		padded := make([]string, n)
+		copy(padded, cells)
+		for i := len(cells); i < n; i++ {
+			padded[i] = ""
+		}
+		return padded
+	}
+	return cells
+}
+
 func (m TodoTableModel) updateRows() TodoTableModel {
 	availableWidth := m.width - 8
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
 
+	// Guard against zero/negative widths - enforce minimum column widths
 	checkboxColWidth := 5
 	statusColWidth := 15
 	createdAtColWidth := 15
 	deadlineColWidth := 12
+	
+	// Calculate title column width with minimum constraint
 	titleColWidth := availableWidth - checkboxColWidth - statusColWidth - createdAtColWidth - deadlineColWidth - 8
 	if titleColWidth < 20 {
 		titleColWidth = 20
 		deadlineColWidth = 0 // Hide deadline column if space is too tight
 	}
+	
+	// Ensure all column widths are positive
+	if checkboxColWidth < 1 { checkboxColWidth = 1 }
+	if statusColWidth < 1 { statusColWidth = 1 }
+	if createdAtColWidth < 1 { createdAtColWidth = 1 }
+	if titleColWidth < 1 { titleColWidth = 1 }
 
+	// Build columns first to determine target layout
 	var columns []table.Column
 	if deadlineColWidth > 0 {
 		columns = []table.Column{
@@ -155,8 +182,10 @@ func (m TodoTableModel) updateRows() TodoTableModel {
 		}
 	}
 
-	m.table.SetColumns(columns)
+	// Get the number of columns for normalization
+	numColumns := len(columns)
 
+	// Build rows with proper cell count normalization BEFORE setting anything on the table
 	var rows []table.Row
 	var filteredTodos []model.Todo
 
@@ -185,17 +214,58 @@ func (m TodoTableModel) updateRows() TodoTableModel {
 		}
 		createdAt := model.FormatTimeAgo(todo.CreatedAt)
 		
+		// Build row with appropriate number of cells
+		var rowCells []string
 		if deadlineColWidth > 0 {
 			deadline := model.FormatDeadline(todo.Deadline, todo.HardDeadline)
-			rows = append(rows, table.Row{checkbox, title, status, deadline, createdAt})
+			rowCells = []string{checkbox, title, status, deadline, createdAt}
 		} else {
-			rows = append(rows, table.Row{checkbox, title, status, createdAt})
+			rowCells = []string{checkbox, title, status, createdAt}
 		}
+		
+		// Normalize cells to match column count exactly
+		normalizedCells := normalizeCells(rowCells, numColumns)
+		rows = append(rows, table.Row(normalizedCells))
+	}
+
+	// CRITICAL FIX: We need to avoid SetColumns triggering UpdateViewport 
+	// while the table has mismatched rows. The safest approach is to
+	// construct a new table with the right columns and rows from the start.
+	
+	// Get the current table state we want to preserve
+	currentCursor := m.table.Cursor()
+	currentFocus := m.table.Focused()
+	
+	// Create a new table with the correct columns and rows from the beginning
+	newTable := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(currentFocus),
+	)
+	
+	// Apply the same styles as the original table
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true).
+		Foreground(lipgloss.Color("252"))
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("255")).
+		Background(lipgloss.Color("236")).
+		Bold(true)
+	newTable.SetStyles(s)
+	
+	// Restore cursor position safely
+	if currentCursor < len(rows) {
+		newTable.SetCursor(currentCursor)
 	}
 	
-	// Set the rows on the table
-	m.table.SetRows(rows)
+	// Replace the table entirely to avoid any inconsistent intermediate states
+	m.table = newTable
 
+	// Set the height after everything is consistent
 	extra := 4
 	helpLines := 0
 	if m.mode == ModeNormal {
